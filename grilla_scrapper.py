@@ -197,6 +197,7 @@ def main(gui_arg = None, window = None):
                                        orientation = 'h',
                                        no_button = True,
                                        grab_anywhere = True,
+                                       keep_on_top = True,
                                        bar_color = ('green','gray'))
             #key = 'OK for 1 meter'
             #meter = sg.QuickMeter.active_meters[key]

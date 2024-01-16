@@ -10,6 +10,7 @@ import subprocess
 import os
 import grilla_scrapper
 import sys
+import pandas as pd
    
 #%%     
 
@@ -79,6 +80,24 @@ def run_custom_script(run_directory, output_elem, out_directory, window, script_
         sg.popup(f"Script '{script_path}' finished running. \nResults saved in '{out_directory}'")
     except Exception as e:
         sg.popup_error(f"Error running script: {e}")
+        
+    # ----- Information and Test values for scripts ----- #
+def toolkit_popup(event,table):
+    layout_info = [[sg.Text(settings['TOOLKIT'][event+'_info'])],
+                        [sg.Table([table.values[0].tolist()],
+                                  table.columns.tolist(),
+                                  auto_size_columns = False, 
+                                  vertical_scroll_only= False,
+                                  justification='center',
+                                  max_col_width=10,
+                                  def_col_width = 5,
+                                  num_rows=2)],
+                        [sg.Exit(button_color='tomato',s=10)]]
+    title_info = event + ' Info'
+    return sg.Window(title_info, layout_info,size=(1400,200),relative_location=(0,230),
+                     finalize=True, resizable=True) 
+
+    
 #%%
 def main_window():
     # ----- Menu ----- #
@@ -98,12 +117,25 @@ def main_window():
               [sg.Button("Run Script",s=16, button_color='light green'), sg.Exit(s=10, button_color='tomato')],
               [sg.Text("Output:", justification='r', visible=False, key='-OUTPUT_KEY-'), sg.Output(size=(50, 10), key='-OUTPUT-', visible=False)]]
     # ----- Open Window ----- #
-    window = sg.Window(window_title, layout, modal = True)
+    window = sg.Window(window_title, layout, finalize=True, resizable=True)
+    windows = [window]
+    index = 0
     # ----- Menu ----- #
     while True:
-        event, values = window.read()
-        if event == sg.WINDOW_CLOSED or event == "Exit":
-            break
+        #event, values = window.read()
+        win, event, values = sg.read_all_windows(timeout=100)
+        if event in (sg.WINDOW_CLOSED,"Exit"):
+            if win == window:
+                break
+            win.close()
+            windows.remove(win)
+            index -= 1
+        if any(event in x for x in scripts_def):
+            index += 1
+            table = pd.DataFrame(data = [settings['TOOLKIT'][event+'_table'].split('//')],
+                                      columns = settings['TOOLKIT'][event+'_header'].split('//'))
+            new_win = toolkit_popup(event, table)
+            windows.append(new_win)
         if event == 'Cancel':
             sg.one_line_progress_meter_cancel()
         if event in ('Field Report Scraper', 'Quality Assesment'):
@@ -146,7 +178,8 @@ def main_window():
             else:
                 sg.popup_error("Please select both script and run_directory!")
     sg.one_line_progress_meter_cancel()
-    window.close()
+    for win in windows:
+        win.close()
 
 #%%
 if __name__ == '__main__':
