@@ -125,6 +125,8 @@ def main(gui_arg = None, window = None):
     except ImportError:
         pip.main(['install', 'pywin32'])
         import win32com.client 
+    if window:
+        import PySimpleGUI as sg
 
     ### Header info
     ### ----------------------------
@@ -190,7 +192,16 @@ def main(gui_arg = None, window = None):
         # User Output
         file_path_cwd = path.replace(cwd,'')
         print('Working on file: ' + file_path_cwd)
-        window.Refresh() if window else None
+        if window:
+            sg.one_line_progress_meter('Progress', i+1,len(grilla_files),
+                                       orientation = 'h',
+                                       no_button = True,
+                                       grab_anywhere = True,
+                                       bar_color = ('green','gray'))
+            #key = 'OK for 1 meter'
+            #meter = sg.QuickMeter.active_meters[key]
+            #meter.window.DisableClose = False
+            window.Refresh() 
         #open word file
         wb = word.Documents.Open(path)
         doc = word.ActiveDocument
