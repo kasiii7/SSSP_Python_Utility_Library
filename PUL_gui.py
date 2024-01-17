@@ -12,7 +12,7 @@ import grilla_scrapper
 import sys
 import pandas as pd
    
-#%%     
+#%% Functions    
 
     # ----- Run Imported Scripts ----- #
 def run_imported_script(run_directory, out_directory,run_script, window,selected_script):
@@ -83,7 +83,7 @@ def run_custom_script(run_directory, output_elem, out_directory, window, script_
         
     # ----- Information and Test values for scripts ----- #
 def toolkit_popup(event,table):
-    layout_info = [[sg.Text(settings['TOOLKIT'][event+'_info'])],
+    layout_info = [[sg.Text(settings['TOOLKIT'][event+'_info'],justification='left')],
                         [sg.Table([table.values[0].tolist()],
                                   table.columns.tolist(),
                                   auto_size_columns = False, 
@@ -94,11 +94,11 @@ def toolkit_popup(event,table):
                                   num_rows=2)],
                         [sg.Exit(button_color='tomato',s=10)]]
     title_info = event + ' Info'
-    return sg.Window(title_info, layout_info,size=(1400,200),relative_location=(0,230),
+    return sg.Window(title_info, layout_info,size=(1400,230),relative_location=(0,250),
                      finalize=True, resizable=True) 
 
     
-#%%
+#%% Main
 def main_window():
     # ----- Menu ----- #
     menu_def = [['Toolbar', scripts_def],
@@ -138,8 +138,6 @@ def main_window():
             windows.append(new_win)
         if event == 'Cancel':
             sg.one_line_progress_meter_cancel()
-        if event in ('Field Report Scraper', 'Quality Assesment'):
-            sg.popup_error('Not yet implemented')
         if event == 'About':
             sg.popup(window_title, settings['ABOUT']['version'], settings['ABOUT']['description'], settings['ABOUT']['author'], grab_anywhere=True)
         if event == "-SCRIPTS-":
@@ -181,7 +179,7 @@ def main_window():
     for win in windows:
         win.close()
 
-#%%
+#%% Run Script
 if __name__ == '__main__':
     gui_directory = os.path.dirname(os.path.abspath(__file__))
     if getattr(sys, 'freeze', False):
