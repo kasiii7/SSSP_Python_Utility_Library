@@ -8,14 +8,17 @@ Python Unility Library GUI
 import PySimpleGUI as sg
 import subprocess
 import os
-import grilla_scrapper
 import sys
 import pandas as pd
+    # ----- Importing py scripts ----- #
+
+import grilla_scrapper
+import QA_folder_check
    
 #%% Functions    
 
     # ----- Run Imported Scripts ----- #
-def run_imported_script(run_directory, out_directory,run_script, window,selected_script):
+def run_imported_script(run_directory, out_directory,run_script, windows,selected_script, index):
     '''
     
 
@@ -35,7 +38,9 @@ def run_imported_script(run_directory, out_directory,run_script, window,selected
     '''
     try:
         os.chdir(run_directory)
-        run_script.main(out_directory, window)
+        print(len(windows))
+        windows, index = run_script.main(out_directory, windows,index)
+        print(len(windows))
         sg.popup(f"Script '{selected_script}' finished running. \nResults saved in '{out_directory}'")
     except Exception as e:
         sg.popup_error(f"Error running script: {e}")
@@ -94,7 +99,7 @@ def toolkit_popup(event,table):
                                   num_rows=2)],
                         [sg.Exit(button_color='tomato',s=10)]]
     title_info = event + ' Info'
-    return sg.Window(title_info, layout_info,size=(1400,230),relative_location=(0,250),
+    return sg.Window(title_info, layout_info,size=(1400,230),relative_location=(0,260),
                      finalize=True, resizable=True) 
 
     
@@ -130,7 +135,7 @@ def main_window():
             win.close()
             windows.remove(win)
             index -= 1
-        if any(event in x for x in scripts_def):
+        if any(event in x for x in scripts_def[:-1]):
             index += 1
             table = pd.DataFrame(data = [settings['TOOLKIT'][event+'_table'].split('//')],
                                       columns = settings['TOOLKIT'][event+'_header'].split('//'))
@@ -158,7 +163,8 @@ def main_window():
             else:
                 script_path = None    
                 preselected_scripts = {
-                    'GRILLA Scraper': grilla_scrapper
+                    'GRILLA Scraper': grilla_scrapper,
+                    'Quality Assesment': QA_folder_check
                     }
                 run_script = preselected_scripts.get(selected_script)
             run_directory = values['-RUN_DIRECTORY-']
@@ -172,13 +178,13 @@ def main_window():
                 run_custom_script(run_directory, output_elem, out_directory, window,script_path)
                 window.refresh()
             elif selected_script and run_directory:
-                run_imported_script(run_directory,out_directory,run_script, window,selected_script)
+                run_imported_script(run_directory,out_directory,run_script, windows,selected_script, index)
             else:
                 sg.popup_error("Please select both script and run_directory!")
     sg.one_line_progress_meter_cancel()
     for win in windows:
         win.close()
-
+        
 #%% Run Script
 if __name__ == '__main__':
     gui_directory = os.path.dirname(os.path.abspath(__file__))
