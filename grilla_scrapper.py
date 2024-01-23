@@ -111,7 +111,7 @@ def _find_criteria(string, trigger):
 
 #%% Code
 ### ----------------------------
-def main(gui_arg = None, window = None):   
+def main(gui_arg = None, windows = None, *args):   
     ### checking if Pandas are imported
     ### ----------------------------
     try:
@@ -125,8 +125,9 @@ def main(gui_arg = None, window = None):
     except ImportError:
         pip.main(['install', 'pywin32'])
         import win32com.client 
-    if window:
+    if windows:
         import PySimpleGUI as sg
+        window = windows[0] if windows else None
 
     ### Header info
     ### ----------------------------
@@ -186,13 +187,13 @@ def main(gui_arg = None, window = None):
     
     ### User Output
     print('Number of GRILLA files found: ' + str(len(grilla_files)))
-    window.Refresh() if window else None
+    window.Refresh() if windows else None
     
     for i,path in enumerate(grilla_files):
         # User Output
         file_path_cwd = path.replace(cwd,'')
         print('Working on file: ' + file_path_cwd)
-        if window:
+        if windows:
             sg.one_line_progress_meter('Progress', i+1,len(grilla_files),
                                        orientation = 'h',
                                        no_button = True,
@@ -237,6 +238,7 @@ def main(gui_arg = None, window = None):
         gui_dir = ''
     final_table.to_excel(gui_dir + output_name + '.xlsx', index = False)
     final_table.to_csv(gui_dir + output_name + '.csv', index = False)
+    return windows, args
 #%%
 ### ----------------------------
 # Run this script if it was executed without gui

@@ -18,7 +18,7 @@ import QA_folder_check
 #%% Functions    
 
     # ----- Run Imported Scripts ----- #
-def run_imported_script(run_directory, out_directory,run_script, windows,selected_script, index):
+def run_imported_script(run_directory, out_directory,run_script, windows,selected_script, index,time = None):
     '''
     
 
@@ -38,10 +38,9 @@ def run_imported_script(run_directory, out_directory,run_script, windows,selecte
     '''
     try:
         os.chdir(run_directory)
-        print(len(windows))
-        windows, index = run_script.main(out_directory, windows,index)
-        print(len(windows))
-        sg.popup(f"Script '{selected_script}' finished running. \nResults saved in '{out_directory}'")
+        windows, index = run_script.main(out_directory, windows,index,time)
+        sg.popup(f"Script '{selected_script}' finished running. \nResults saved in '{out_directory}'")   
+        return windows, index
     except Exception as e:
         sg.popup_error(f"Error running script: {e}")
            
@@ -103,6 +102,27 @@ def toolkit_popup(event,table):
                      finalize=True, resizable=True) 
 
     
+def time_choice():
+    layout_t = [[sg.Text('Choose a timespan for quality check',justification='center')],
+              [sg.Radio('Today', 'RADTIME', key='-TIMETODAY-'),
+               sg.Radio('Up to Last Week','RADTIME', key='-TIMEWEEK-'),
+               sg.Radio('This Season','RADTIME', key='-TIMESEASON-',default = True),
+               sg.Radio('All Data','RADTIME', key='-TIMEALL-')],
+              [sg.B('Submit', key='-TIMESTART-', button_color='light green')]]
+    title_t = 'Timespan Choice'
+    return sg.Window(title_t,layout_t, finalize=True)
+
+def get_time(values):
+    if values['-TIMETODAY-']:
+        time = 0
+    elif values['-TIMEWEEK-']:
+        time = 1
+    elif values['-TIMESEASON-']:
+        time = 2
+    else:
+        time = 3
+    return time
+    
 #%% Main
 def main_window():
     # ----- Menu ----- #
@@ -125,17 +145,17 @@ def main_window():
     window = sg.Window(window_title, layout, finalize=True, resizable=True)
     windows = [window]
     index = 0
+    time = None
     # ----- Menu ----- #
     while True:
-        #event, values = window.read()
         win, event, values = sg.read_all_windows(timeout=100)
-        if event in (sg.WINDOW_CLOSED,"Exit"):
+        if event in (sg.WIN_CLOSED,"Exit"):
             if win == window:
                 break
             win.close()
             windows.remove(win)
             index -= 1
-        if any(event in x for x in scripts_def[:-1]):
+        if any(event == x for x in scripts_def[:-1]):
             index += 1
             table = pd.DataFrame(data = [settings['TOOLKIT'][event+'_table'].split('//')],
                                       columns = settings['TOOLKIT'][event+'_header'].split('//'))
@@ -153,7 +173,21 @@ def main_window():
             else:
                 window['-CUSTOM_SCRIPT-'].update(visible=False)
                 window['-CUSTOM_SCRIPT_BROWSE-'].update(visible=False)
-                window['-CUSTOM_SCRIPT_TEXT-'].update(visible=False)
+                window['-CUSTOM_SCRIPT_TEXT-'].update(visible=False)   
+            
+            if values['-SCRIPTS-'] == 'Quality Assesment':
+                window.hide()
+                new_win = time_choice()
+                index += 1
+                windows.append(new_win)
+
+        if event == '-TIMESTART-':
+            time = get_time(values)
+            win.close()
+            windows.remove(win)
+            index -= 1
+            window.un_hide()
+            
         if event == "Run Script":
             window['-OUTPUT_KEY-'].update(visible=True)
             window['-OUTPUT-'].update(visible=True)
@@ -178,7 +212,8 @@ def main_window():
                 run_custom_script(run_directory, output_elem, out_directory, window,script_path)
                 window.refresh()
             elif selected_script and run_directory:
-                run_imported_script(run_directory,out_directory,run_script, windows,selected_script, index)
+                run_imported_script(run_directory,out_directory,run_script, windows,selected_script, index,time)
+            
             else:
                 sg.popup_error("Please select both script and run_directory!")
     sg.one_line_progress_meter_cancel()
