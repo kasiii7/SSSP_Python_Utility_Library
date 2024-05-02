@@ -13,7 +13,7 @@ import sys
 #%% Functions
 ### ----------------------------
 
-def _get_lineID_SiteName(string):
+def _get_lineID_SiteName(string, file_path):
     '''
     a function to read the file title and get LineID and Site Name
 
@@ -30,14 +30,16 @@ def _get_lineID_SiteName(string):
         2 - SiteName (Washingtion_ES)
 
     '''
+    Filename = file_path.split('\\')[2]
+    grilla_number = file_path.split('\\')[3].replace('.doc','')[-1]
     id_string = string[:string.find('\r')].strip()
     TR_number = id_string[-1]
     id_string_line = id_string.split(',')[0]
     LineID = id_string_line[:10]
     SiteName = id_string_line[10:]
-    LineIDtrace = LineID + '.TR' + TR_number
+    LineIDtrace = LineID + '.TR' + TR_number + '.' + grilla_number
     if LineID.isnumeric() == True:
-        return [LineID, LineIDtrace, SiteName]
+        return [Filename, LineID, LineIDtrace, SiteName]
     else:
         return [id_string_line, id_string_line + '.TR' + TR_number, id_string_line]
     
@@ -101,6 +103,10 @@ def _find_criteria(string, trigger):
     if m is not None:
         tail = string[m.span()[1]:]
         end = tail.find('\x07\r')
+        if trigger == 'A0 > 2 \r\x07':
+            end  = tail[:end].find(' > 2')
+            amp_val = tail[:end]
+            return amp_val
         check = re.search('OK',tail[:end])
         if check is not None:
             return check[0]
@@ -111,7 +117,7 @@ def _find_criteria(string, trigger):
 
 #%% Code
 ### ----------------------------
-def main(gui_arg = None, windows = None, *args):   
+def main(gui_arg = None, windows = None, index = None, *args):   
     ### checking if Pandas are imported
     ### ----------------------------
     try:
@@ -131,8 +137,8 @@ def main(gui_arg = None, windows = None, *args):
 
     ### Header info
     ### ----------------------------
-    FILE_NAME = pd.DataFrame(columns=['File Name'])
-    LINE_ID = pd.DataFrame(columns=['LineID', 'LineIDtrace', 'SiteName'])
+    #FILE_NAME = pd.DataFrame(columns=['File Name'])
+    LINE_ID = pd.DataFrame(columns=['File Name','LineID', 'LineIDtrace', 'SiteName'])
     
     ### Header info
     ### ----------------------------
@@ -165,7 +171,8 @@ def main(gui_arg = None, windows = None, *args):
                     'A0 > 2 ',
                     'fpeak[AH/V(f) ± \uf073A(f)] = f0 ± 5%',
                     '\uf073f < \uf065(f0)',
-                    '\uf073A(f0) < \uf071(f0)'
+                    '\uf073A(f0) < \uf071(f0)',
+                    'A0 > 2 \r\x07'
         ]
     SESAME = pd.DataFrame(columns=trigger_look)
     
@@ -218,17 +225,16 @@ def main(gui_arg = None, windows = None, *args):
         for num, info in enumerate(header_attr_names):
             file_head_info.append(_read_header(doc_string, info))
         HEADER.loc[i] = file_head_info
-        #get line and site ID
-        LINE_ID.loc[i] = _get_lineID_SiteName(doc_string)
-        #get files name
-        FILE_NAME.loc[i] = file_path_cwd.split('\\')[2].replace('.doc','').replace('GRILLA','')
+        #get file name, line and site ID
+        LINE_ID.loc[i] = _get_lineID_SiteName(doc_string,file_path_cwd)
         #close word file
         doc.Close(False)    
     #fully quit word 
     word.Quit()
     ### final step, combine line_id, header info, and SESAME checks
     ### ----------------------------
-    final_table = pd.concat([FILE_NAME,LINE_ID, HEADER, SESAME], axis=1)
+    SESAME.rename(columns={'A0 > 2 \r\x07':'Amplitude'},inplace=True)
+    final_table = pd.concat([LINE_ID, HEADER, SESAME], axis=1)
     output_name = 'GRILLA_all_proccessing'
     if len(sys.argv) > 1:
         gui_dir = sys.argv[1] +'\\'
@@ -238,7 +244,7 @@ def main(gui_arg = None, windows = None, *args):
         gui_dir = ''
     final_table.to_excel(gui_dir + output_name + '.xlsx', index = False)
     final_table.to_csv(gui_dir + output_name + '.csv', index = False)
-    return windows, args
+    return windows, index
 #%%
 ### ----------------------------
 # Run this script if it was executed without gui
